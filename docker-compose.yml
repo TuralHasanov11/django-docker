@@ -1,5 +1,25 @@
 version: '3.8'
 services: 
+  redis:
+    image: redis:alpine
+    container_name: redis
+
+  db:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    container_name: postgres_db
+    # image: mysql:5.7
+    # environment:
+    #   MYSQL_DATABASE: 'django-app-db'
+    #   MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+    # volumes:
+    #   - ./data/mysql/db:/var/lib/mysql
+
   app:
     build: .
     volumes:
@@ -9,3 +29,20 @@ services:
     image: app:django_docker
     container_name: django_docker_container
     command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - db 
+
+  celery:
+    restart: always
+    build:
+      context: .
+    command: celery -A core worker -l DEBUG
+    volumes:
+      - .:/app
+    container_name: celery
+    depends_on:
+      - db
+      - redis
+      - app
+
+    
